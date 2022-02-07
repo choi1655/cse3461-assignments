@@ -1,5 +1,11 @@
-# REPO-NAME
-The Ohio State University SEMESETER YEAR ABC 1234 (Course Description) PROJECT DESCRIPTION
+# cse3461-assignments
+The Ohio State University Spring 2022 CSE 3461 (Computer Networking) Compilation of Programming Assignments
+
+## Environment
+* Python 3.9.6
+
+## Assignments
+* [Lab 1](https://github.com/choi1655/cse3461-assignments/tree/lab-1)
 
 ## Instructor
-Dr. NAME, The Ohio State University, Dept. of DEPARTMENT
+Professor Brian Campbell, The Ohio State University, Dept. of Computer Science and Engineering

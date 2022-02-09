@@ -1,11 +1,11 @@
 # File: server.py
 # Author: John Choi choi.1655@osu.edu
-# Version: Feb 7th 2022
+# Version: Feb 9th 2022
 # CSE3461 Lab 1
 
 # import socket module
 from socket import *
-import sys # In order to terminate the program
+import atexit  # to close the server socket before terminating
 
 def get_header():
     return "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
@@ -19,6 +19,11 @@ def get_404():
 </html>
 """
 
+def exiting(serverSocket):
+    print('Closing server socket')
+    serverSocket.close()  # close the server socket before terminating server
+
+
 serverSocket = socket(AF_INET, SOCK_STREAM)
 #Prepare a server socket
 #Fill in start
@@ -26,6 +31,8 @@ HOST = '127.0.0.1'
 PORT = 65432
 serverSocket.bind((HOST, PORT))
 serverSocket.listen()
+
+atexit.register(exiting, serverSocket)
 #Fill in end
 while True:
     #Establish the connection
@@ -36,8 +43,6 @@ while True:
     try:
         #Fill in start
         message = connectionSocket.recv(1024)
-        if b'/favicon.ico' in message:  # skipping favicon GET requests because it is happening for some reason
-            continue
         #Fill in end
         filename = message.split()[1]
         f = open(filename[1:])
@@ -65,7 +70,3 @@ while True:
         #Fill in start
         connectionSocket.close()
         #Fill in end
-        break
-
-serverSocket.close()
-sys.exit()  # Terminate the program after sending the corresponding data

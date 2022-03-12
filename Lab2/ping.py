@@ -9,19 +9,21 @@ import binascii
 
 ICMP_ECHO_REQUEST = 8
 
-def checksum(string):
+def checksum(str):
     csum = 0
-    countTo = (len(string) // 2) * 2
-    count = 0
+    countTo = (len(str) / 2) * 2
 
+    count = 0
     while count < countTo:
-        thisVal = ord(string[count+1]) * 256 + ord(string[count])
+        # thisVal = ord(str[count+1]) * 256 + ord(str[count])
+        thisVal = str[count+1] * 256 + str[count]
         csum = csum + thisVal
         csum = csum & 0xffffffff
         count = count + 2
 
-    if countTo < len(string):
-        csum = csum + ord(string[len(string) - 1])
+    if countTo < len(str):
+        csum = csum + ord(str[len(str) - 1])
+        csum = csum + str[len(str) - 1]
         csum = csum & 0xffffffff
 
     csum = (csum >> 16) + (csum & 0xffff)
@@ -29,6 +31,7 @@ def checksum(string):
     answer = ~csum
     answer = answer & 0xffff
     answer = answer >> 8 | (answer << 8 & 0xff00)
+
     return answer
 
 def receiveOnePing(mySocket, ID, timeout, destAddr):
@@ -57,26 +60,26 @@ def sendOnePing(mySocket, destAddr, ID):
     # Header is type (8), code (8), checksum (16), id (16), sequence (16)
 
     myChecksum = 0
-    # Make a dummy header with a 0 checksum
+    # Make a dummy header with a 0 checksum.
     # struct -- Interpret strings as packed binary data
     header = struct.pack("bbHHh", ICMP_ECHO_REQUEST, 0, myChecksum, ID, 1)
     data = struct.pack("d", time.time())
     # Calculate the checksum on the data and the dummy header.
-    myChecksum = checksum(str(header + data))
+    myChecksum = checksum(header + data)
 
     # Get the right checksum, and put in the header
     if sys.platform == 'darwin':
-        # Convert 16-bit integers from host to network  byte order
-        myChecksum = htons(myChecksum) & 0xffff
+        myChecksum = socket.htons(myChecksum) & 0xffff
+        #Convert 16-bit integers from host to network byte order.
     else:
-        myChecksum = htons(myChecksum)
+        myChecksum = socket.htons(myChecksum)
 
     header = struct.pack("bbHHh", ICMP_ECHO_REQUEST, 0, myChecksum, ID, 1)
     packet = header + data
 
     mySocket.sendto(packet, (destAddr, 1)) # AF_INET address must be tuple, not str
-    # Both LISTS and TUPLES consist of a number of objects
-    # which can be referenced by their position number within the object.
+    #Both LISTS and TUPLES consist of a number of objects
+    #which can be referenced by their position number within the object
 
 def doOnePing(destAddr, timeout):
     icmp = getprotobyname("icmp")

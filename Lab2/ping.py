@@ -5,7 +5,7 @@ import sys
 import struct
 import time
 import select
-import binascii
+import atexit
 
 ICMP_ECHO_REQUEST = 8
 
@@ -48,13 +48,38 @@ def receiveOnePing(mySocket, ID, timeout, destAddr):
         recPacket, addr = mySocket.recvfrom(1024)
 
         #Fill in start
+        # print(recPacket)
+        # print(addr)
 
         #Fetch the ICMP header from the IP packet
+        # ICMP header starts after bit 160 bits for 32 bit
+        # one index represents one byte in recPacket
+
+        starting_idx = 160 // 8
+        ending_idx = (160 + 32 + 32) // 8
+
+        raw_data = struct.unpack('bbHHh', recPacket[starting_idx: ending_idx])
+
+        type_val = raw_data[0]
+        code_val = raw_data[1]
+        checksum_val = raw_data[2]
+        id_val = raw_data[3]
+        sequence_val = raw_data[4]
+
+        # print(f'{type_val= }')
+        # print(f'{code_val= }')
+        # print(f'{checksum_val= }')
+        # print(f'{id_val= }')
+        # print(f'{sequence_val= }')
+
 
         #Fill in end
         timeLeft = timeLeft - howLongInSelect
         if timeLeft <= 0:
-            return "Request timed out."
+            return None
+        else:
+            timeLeft *= 1000 # convert from second to ms
+            return f"{type_val=}, {code_val=}, {checksum_val=}, {id_val=}, {sequence_val=}, time={str(round(timeLeft, 3))}ms"
 
 def sendOnePing(mySocket, destAddr, ID):
     # Header is type (8), code (8), checksum (16), id (16), sequence (16)
@@ -69,10 +94,10 @@ def sendOnePing(mySocket, destAddr, ID):
 
     # Get the right checksum, and put in the header
     if sys.platform == 'darwin':
-        myChecksum = socket.htons(myChecksum) & 0xffff
+        myChecksum = htons(myChecksum) & 0xffff
         #Convert 16-bit integers from host to network byte order.
     else:
-        myChecksum = socket.htons(myChecksum)
+        myChecksum = htons(myChecksum)
 
     header = struct.pack("bbHHh", ICMP_ECHO_REQUEST, 0, myChecksum, ID, 1)
     packet = header + data
@@ -101,10 +126,30 @@ def ping(host, timeout=1):
     print("Pinging " + dest + " using Python:")
     print("")
     # Send ping requests to a server separated by approximately one second
+    counter = 0
+    success = 0
+
+    atexit.register(print_statistics, host, counter, success)
     while 1 :
         delay = doOnePing(dest, timeout)
-        print(delay)
+        if delay is None:
+            print('Request timed out.')
+        else:
+            print(f'Received from {dest}: icmp_seq={counter + 1}, {delay}')
+            success += 1
+            atexit.unregister(print_statistics)
+            atexit.register(print_statistics, host, counter, success)
         time.sleep(1)# one second
+        counter += 1
+        atexit.unregister(print_statistics)
+        atexit.register(print_statistics, host, counter, success)
     return delay
+
+def print_statistics(destination, num_packets, received):
+    num_packets += 1
+    percentage = 100 - (received / num_packets * 100)
+    print()
+    print(f'--------- {destination} ping statistics ---------')
+    print(f'{num_packets} packets transmitted, {received} packets received, {str(round(percentage, 1))}% packet loss')
 
 ping("google.com")

@@ -1,4 +1,9 @@
+"""File: ping.py
+Author: John Choi choi.1655@osu.edu
+Version: March 13, 2022
 
+The Ohio State University CSE3461 Programming Lab 2.
+"""
 from socket import *
 import os
 import sys
